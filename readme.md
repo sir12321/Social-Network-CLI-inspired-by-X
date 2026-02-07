@@ -140,6 +140,6 @@ Notes and limitations
 - If you want quoted-argument parsing (e.g., support quoted usernames or
   other more complex parsing), I can add a more robust parser.
 
-Contact: Manya Jain (2024CS10351)
+Contact: cs1240351@iitd.ac.in
 
 ------------------------------------------------------------
