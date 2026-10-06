@@ -1,143 +1,104 @@
-------------------------------------------------------------
-Social Network CLI — README
-------------------------------------------------------------
+# Social Network CLI (Inspired by X)
 
-Author: Manya Jain
-Project: simple in-memory social-network CLI
+**Author:** Manya Jain
+**Course:** COL106 Data Structures & Algorithms, IIT Delhi
 
-------------------------------------------------------------
-What this program does
-------------------------------------------------------------
-This is a small command-line program that models a simple in-memory social
-network. It supports adding users, creating friendships, posting short
-messages, listing friends, suggesting friends (friends-of-friends ranked by
-mutual friends) and computing degrees of separation between two users.
+An in-memory social network driven from the command line, written in C++17.
+Users form an undirected friendship graph, each user's posts are stored in a
+self-balancing AVL tree, and the graph supports friend suggestions and
+degree-of-separation queries.
 
-All data is kept in memory while the program runs; there is no persistent
-storage. The program reads commands from stdin (interactive or redirected
-from a file) and prints results to stdout. Errors are printed to stderr in the
-format: Error: <message>
+All data lives in memory for the duration of the run; there is no persistent
+storage. Commands are read from stdin (interactively or from a file), results
+go to stdout, and errors go to stderr as `Error: <message>`.
 
-------------------------------------------------------------
-How to compile and run
-------------------------------------------------------------
+## Build and run
 
-Windows (using MSYS2 or g++ on PATH):
+**Linux / macOS**
 
-1. Open a terminal in the `long_assignment_col106` folder.
-2. Run the batch file:
+```bash
+./compile.sh                      # builds ./long_ass
+./long_ass                        # interactive
+./long_ass < input.txt > out.txt  # batch
+```
 
-   compile.bat
+**Windows** (MSYS2 UCRT g++ if installed, otherwise `g++` on PATH)
 
-   This will build `long_ass.exe` in the same folder.
+```bat
+compile.bat
+long_ass.exe
+long_ass.exe < input.txt > out.txt
+```
 
-3. Run the program interactively:
+## Commands
 
-   long_ass.exe
+One command per line. Usernames are case-insensitive (normalized to lowercase).
 
-   Or run with an input file:
+| Command | Description |
+| --- | --- |
+| `ADD_USER <username>` | Create a new user. |
+| `ADD_FRIEND <username1> <username2>` | Make two users friends (bidirectional). |
+| `ADD_POST <username> <post_content>` | Add a post; the content may contain spaces. |
+| `OUTPUT_POSTS <username> <N>` | Print the user's N most recent posts, newest first. `N = -1` prints all. |
+| `LIST_FRIENDS <username>` | List the user's direct friends alphabetically. |
+| `SUGGEST_FRIENDS <username> [N]` | Recommend up to N friends-of-friends who are not already friends, ranked by mutual-friend count (descending), ties broken alphabetically. Omitting N lists all; N ≤ 0 prints nothing. |
+| `DEGREE_OF_SEPARATION <username1> <username2>` | Length of the shortest friendship path, or -1 if none exists. `DEGREES_OF_SEPARATION` is also accepted. |
+| `HELP` | List the available commands. |
+| `EXIT` | Quit. |
 
-   long_ass.exe < test_in.txt > test_out.txt
+## Example
 
-Linux / macOS (bash):
+Input:
 
-1. Open a terminal in the `long_assignment_col106` folder.
-2. Run the script:
-
-   ./compile.sh
-
-   This will produce `long_ass`.
-
-3. Run the program:
-
-   ./long_ass
-
-   Or with a file:
-
-   ./long_ass < test_in.txt > test_out.txt
-
-------------------------------------------------------------
-Commands (one per line)
-------------------------------------------------------------
-
-HELP
-    - Prints the list of available commands.
-
-EXIT
-    - Exits the program. Prints "Exiting...".
-
-ADD_USER <username>
-    - Add a new user. Usernames are normalized to lowercase.
-    - Output: New user added: <username>
-
-ADD_FRIEND <username1> <username2>
-    - Make two users friends (bidirectional).
-    - Output: Friendship created between <username1> and <username2>
-
-ADD_POST <username> <post_content>
-    - Add a post for the given user. Post content may include spaces.
-    - Output: Post added for <username>: "<post_content>"
-
-OUTPUT_POSTS <username> <N>
-    - Print up to N posts from <username> (reverse-inorder traversal order).
-
-LIST_FRIENDS <username>
-    - List all direct friends of the user.
-
-SUGGEST_FRIENDS <username> <N>
-    - Recommend up to N friends-of-friends (not already friends). Ranking:
-      number of mutual friends (descending). Ties broken alphabetically.
-
-DEGREE_OF_SEPARATION <username1> <username2>
-    - Print the length of the shortest friendship path between the users.
-      Prints a friendly message and -1 if no path exists.
-
-------------------------------------------------------------
-Examples
-------------------------------------------------------------
-
-Example input (lines):
-
+```
 ADD_USER alice
 ADD_USER bob
 ADD_USER carol
 ADD_FRIEND alice bob
 ADD_FRIEND bob carol
+ADD_POST alice Hello world
+ADD_POST alice Second post
+OUTPUT_POSTS alice 5
 SUGGEST_FRIENDS alice 5
 DEGREE_OF_SEPARATION alice carol
 EXIT
+```
 
-Example output (excerpt):
+Output:
 
+```
 New user added: alice
 New user added: bob
 New user added: carol
 Friendship created between alice and bob
 Friendship created between bob and carol
+Post added for alice: "Hello world"
+Post added for alice: "Second post"
+Posts of alice :
+    Post Content: Second post
+    Post Content: Hello world
 Suggested friends for alice:
-    carol
-Degree of separation between alice and carol is 2
+    carol (1 mutual friends)
+Degree of separation between alice and carol: 2
+Exiting...
+```
 
-------------------------------------------------------------
-Internal data structures
-------------------------------------------------------------
+## Design
 
-- User: stores username, an AVL tree of posts (`posts.hpp`), and a set of
-        pointers to friend `User` objects.
-- AVL tree: used for storing posts and returning up to N posts via a
-            reverse-inorder traversal.
-- Friend graph: represented by `set<User*>` inside each `User`.
+- **Users** (`user.hpp`): a username, an AVL tree of posts, and an
+  `unordered_set<User*>` of friends. `ADD_FRIEND` inserts each user into the
+  other's set, so the friendship graph is undirected.
+- **Posts** (`posts.hpp`): an AVL tree keyed by an incrementing post id, kept
+  balanced with single and double rotations. A reverse in-order traversal
+  (right, root, left) visits posts newest first and stops after N.
+- **Friend suggestions**: counts how many of the user's friends each
+  friend-of-friend is connected to, then sorts by that mutual count.
+- **Degree of separation**: breadth-first search from the first user,
+  stopping as soon as the second user is reached.
 
-------------------------------------------------------------
-Notes and limitations
-------------------------------------------------------------
+## Limitations
 
-- The program keeps everything in memory; exiting the program clears all
-  data.
-- Usernames are normalized to lowercase for comparisons.
-- Commands are space-separated; the parser keeps the remainder after the
-  first two tokens as a single token (to allow post content with spaces).
-- If you want quoted-argument parsing (e.g., support quoted usernames or
-  other more complex parsing), I can add a more robust parser.
-
-------------------------------------------------------------
+- No persistence: all data is lost on exit.
+- Arguments are space-separated; everything after the second token is kept as
+  one argument (so post content can contain spaces), and quoted arguments are
+  not supported.
